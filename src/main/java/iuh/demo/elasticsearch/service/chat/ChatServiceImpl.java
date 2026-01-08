@@ -1,21 +1,15 @@
-package iuh.demo.elasticsearch.service;
+package iuh.demo.elasticsearch.service.chat;
 
 import iuh.demo.elasticsearch.model.Message;
 import iuh.demo.elasticsearch.repository.mongo.MessageRepository;
 import iuh.demo.elasticsearch.repository.elasticsearch.MessageSearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

@@ -1,11 +1,10 @@
-package iuh.demo.elasticsearch.service;
+package iuh.demo.elasticsearch.service.chat;
 
 import iuh.demo.elasticsearch.model.Message;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ChatService {
 

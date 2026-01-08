@@ -1,7 +1,7 @@
 package iuh.demo.elasticsearch.controller;
 
 import iuh.demo.elasticsearch.model.Message;
-import iuh.demo.elasticsearch.service.ChatService;
+import iuh.demo.elasticsearch.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
