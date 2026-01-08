@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: elasticsearch
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+
+  elasticsearch:
+    uris: ${SPRING_ELASTICSEARCH_URIS}
+
