@@ -1,4 +1,4 @@
-package iuh.demo.elasticsearch.util;
+package iuh.demo.elasticsearch.util.elasticsearch;
 
 public final class Indices {
 
