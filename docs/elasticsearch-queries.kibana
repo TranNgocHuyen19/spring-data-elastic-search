@@ -1,0 +1,645 @@
+// =============================================================
+// ELASTICSEARCH KIBANA QUERIES - Vietnamese Chat Search
+// =============================================================
+// Author: Huyền
+// Updated: 2026-01-09
+// =============================================================
+
+
+// =============================================================
+// 1. BASIC OPERATIONS
+// =============================================================
+
+// Test connection
+GET /
+
+// List all indices
+GET _cat/indices?v
+
+// Create empty index
+PUT messages
+
+// Delete index
+DELETE messages
+
+
+// =============================================================
+// 2. DOCUMENT OPERATIONS
+// =============================================================
+
+// Add single document
+POST messages/_doc/1
+{
+  "roomId": "ROOM_01",
+  "sender": { "id": "user1", "name": "Tran Huyen" },
+  "content": "Huyền",
+  "createdAt": "2026-01-08T21:30:00"
+}
+
+// Get document by ID
+GET messages/_doc/1
+
+// Get mapping
+GET messages/_mapping
+
+
+// =============================================================
+// 3. MANUAL MAPPING
+// =============================================================
+
+PUT messages
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "roomId": { "type": "keyword" },
+      "content": { "type": "text" },
+      "createdAt": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "sender": {
+        "properties": {
+          "id": { "type": "keyword" },
+          "name": {
+            "type": "text",
+            "fields": {
+              "keyword": { "type": "keyword", "ignore_above": 256 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+// =============================================================
+// 4. BULK INSERT
+// =============================================================
+
+POST _bulk
+{ "index": { "_index": "messages", "_id": "2" } }
+{ "roomId": "ROOM_01", "sender": { "id": "u1", "name": "Nam" }, "content": "Huyen ơi, check tin nhắn", "createdAt": "2026-01-08T08:00:00" }
+{ "index": { "_index": "messages", "_id": "3" } }
+{ "roomId": "ROOM_01", "sender": { "id": "u2", "name": "Bình" }, "content": "Có ai thấy hUYỀN đâu không?", "createdAt": "2026-01-08T08:05:00" }
+{ "index": { "_index": "messages", "_id": "4" } }
+{ "roomId": "ROOM_02", "sender": { "id": "u3", "name": "Khánh" }, "content": "Huyeenf đi họp chưa?", "createdAt": "2026-01-07T09:00:00" }
+{ "index": { "_index": "messages", "_id": "5" } }
+{ "roomId": "ROOM_02", "sender": { "id": "u3", "name": "Khánh" }, "content": "Huyeefn nay nghỉ phép rồi", "createdAt": "2026-01-07T09:30:00" }
+{ "index": { "_index": "messages", "_id": "6" } }
+{ "roomId": "GROUP_DEV", "sender": { "id": "u4", "name": "PM" }, "content": "@Huyền fix bug này gấp", "createdAt": "2025-12-25T14:00:00" }
+{ "index": { "_index": "messages", "_id": "7" } }
+{ "roomId": "GROUP_DEV", "sender": { "id": "u5", "name": "Dev1" }, "content": "Ok để em báo H u y ề n", "createdAt": "2025-12-25T14:15:00" }
+{ "index": { "_index": "messages", "_id": "8" } }
+{ "roomId": "ROOM_03", "sender": { "id": "u6", "name": "Lan" }, "content": "Huyển ơi", "createdAt": "2026-01-05T10:00:00" }
+{ "index": { "_index": "messages", "_id": "9" } }
+{ "roomId": "ROOM_03", "sender": { "id": "u6", "name": "Lan" }, "content": "Hyền đâu rồi nhỉ", "createdAt": "2026-01-05T10:01:00" }
+{ "index": { "_index": "messages", "_id": "10" } }
+{ "roomId": "PRIVATE_1", "sender": { "id": "u7", "name": "Hùng" }, "content": "Huỳen tối nay rảnh không", "createdAt": "2026-01-08T19:00:00" }
+{ "index": { "_index": "messages", "_id": "11" } }
+{ "roomId": "ROOM_01", "sender": { "id": "u8", "name": "UserA" }, "content": "H.u.y.ề.n check mail nhé", "createdAt": "2024-05-20T11:00:00" }
+{ "index": { "_index": "messages", "_id": "12" } }
+{ "roomId": "ROOM_04", "sender": { "id": "u9", "name": "UserB" }, "content": "Huyềnnnnnnnnnnnn", "createdAt": "2026-01-08T22:00:00" }
+{ "index": { "_index": "messages", "_id": "13" } }
+{ "roomId": "ROOM_04", "sender": { "id": "u9", "name": "UserB" }, "content": "Tìm người tên H u y e n", "createdAt": "2026-01-08T22:05:00" }
+{ "index": { "_index": "messages", "_id": "14" } }
+{ "roomId": "GROUP_HR", "sender": { "id": "u10", "name": "HR" }, "content": "Hồ sơ của bạn Huyền", "createdAt": "2026-01-15T08:00:00" }
+{ "index": { "_index": "messages", "_id": "15" } }
+{ "roomId": "ROOM_01", "sender": { "id": "u1", "name": "Nam" }, "content": "Không phải Huyền, là Hiền", "createdAt": "2026-01-08T23:00:00" }
+
+
+// =============================================================
+// 5. QUERY TYPES
+// =============================================================
+
+// 5.1 Match Query (Full-text search)
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": "huyền"
+    }
+  }
+}
+
+// 5.2 Term Query (Exact match)
+GET messages/_search
+{
+  "query": {
+    "term": {
+      "roomId": "ROOM_01"
+    }
+  }
+}
+
+// 5.3 Range Query
+GET messages/_search
+{
+  "query": {
+    "range": {
+      "createdAt": {
+        "gte": "2026-01-01",
+        "lte": "2026-12-31"
+      }
+    }
+  }
+}
+
+// 5.4 Match Phrase (Exact order)
+GET messages/_search
+{
+  "query": {
+    "match_phrase": {
+      "content": "H u y ề n"
+    }
+  }
+}
+
+// 5.5 Prefix Query
+GET messages/_search
+{
+  "query": {
+    "prefix": {
+      "content": "huy"
+    }
+  }
+}
+
+// 5.6 Wildcard Query (SLOW!)
+GET messages/_search
+{
+  "query": {
+    "wildcard": {
+      "content": "*uyền*"
+    }
+  }
+}
+
+// 5.7 Multi Match
+GET messages/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "huyền",
+      "fields": ["content", "sender.name"]
+    }
+  }
+}
+
+
+// =============================================================
+// 6. BOOL QUERY
+// =============================================================
+
+// 6.1 Must + Filter
+GET messages/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "content": "huyền" }},
+        { "term": { "roomId": "ROOM_01" }}
+      ],
+      "filter": [
+        { "range": { "createdAt": { "gte": "2026-01-01" }}}
+      ]
+    }
+  }
+}
+
+// 6.2 Should (OR)
+GET messages/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "roomId": "ROOM_01" }}
+      ],
+      "should": [
+        { "match": { "content": "huyền" }},
+        { "match": { "content": "phải" }}
+      ]
+    }
+  }
+}
+
+// 6.3 Must Not (Exclude)
+GET messages/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "roomId": "ROOM_01" }}
+      ],
+      "must_not": [
+        { "match": { "content": "mail" }}
+      ]
+    }
+  }
+}
+
+
+// =============================================================
+// 7. FUZZY SEARCH
+// =============================================================
+
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": {
+        "query": "huyen",
+        "fuzziness": "AUTO"
+      }
+    }
+  }
+}
+
+
+// =============================================================
+// 8. SORTING & PAGINATION
+// =============================================================
+
+GET messages/_search
+{
+  "from": 0,
+  "size": 5,
+  "query": {
+    "match": { "content": "huyền" }
+  },
+  "sort": [
+    { "createdAt": "desc" }
+  ]
+}
+
+
+// =============================================================
+// 9. HIGHLIGHT
+// =============================================================
+
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": "huyền"
+    }
+  },
+  "highlight": {
+    "pre_tags": ["<span style='background-color:yellow'>"],
+    "post_tags": ["</span>"],
+    "fields": {
+      "content": {}
+    }
+  }
+}
+
+
+// =============================================================
+// 10. BOOST & MINIMUM SHOULD MATCH
+// =============================================================
+
+// Boost priority fields
+GET messages/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "huyền",
+      "fields": ["content^2", "sender.name"]
+    }
+  }
+}
+
+// Minimum should match
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": {
+        "query": "huyền check mail",
+        "minimum_should_match": "70%"
+      }
+    }
+  }
+}
+
+
+// =============================================================
+// 11. SOURCE FILTERING
+// =============================================================
+
+GET messages/_search
+{
+  "_source": ["content", "createdAt"],
+  "query": {
+    "match": { "content": "huyền" }
+  }
+}
+
+
+// =============================================================
+// 12. CUSTOM ANALYZER
+// =============================================================
+
+DELETE messages
+
+PUT messages
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_text_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "content": {
+        "type": "text",
+        "analyzer": "my_text_analyzer"
+      },
+      "roomId": { "type": "keyword" },
+      "createdAt": { "type": "date" }
+    }
+  }
+}
+
+// Test analyzer
+GET messages/_analyze
+{
+  "analyzer": "my_text_analyzer",
+  "text": "Xin Chào Huyền"
+}
+
+
+// =============================================================
+// 13. AUTOCOMPLETE WITH EDGE_NGRAM
+// =============================================================
+
+DELETE messages
+
+PUT messages
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "autocomplete_filter": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20
+        }
+      },
+      "analyzer": {
+        "autocomplete_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "autocomplete_filter"]
+        },
+        "search_analyzer": {
+          "type": "standard"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "content": {
+        "type": "text",
+        "analyzer": "autocomplete_analyzer",
+        "search_analyzer": "search_analyzer"
+      },
+      "roomId": { "type": "keyword" },
+      "createdAt": { "type": "date" }
+    }
+  }
+}
+
+POST messages/_doc
+{ "content": "Huyền đẹp gái" }
+
+POST messages/_doc
+{ "content": "Huỳen đi học" }
+
+// Test autocomplete
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": "hu"
+    }
+  }
+}
+
+
+// =============================================================
+// 14. SYNONYM
+// =============================================================
+
+DELETE messages
+
+PUT messages
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "name_synonym": {
+          "type": "synonym",
+          "synonyms": [
+            "huyền, huyen, huỳen, huyển"
+          ]
+        }
+      },
+      "analyzer": {
+        "synonym_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "name_synonym"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "content": {
+        "type": "text",
+        "analyzer": "synonym_analyzer"
+      }
+    }
+  }
+}
+
+POST messages/_doc
+{ "content": "Huyền đi học" }
+
+GET messages/_search
+{
+  "query": {
+    "match": {
+      "content": "huyen"
+    }
+  }
+}
+
+
+// =============================================================
+// 15. FUNCTION SCORE (Boost recent messages)
+// =============================================================
+
+GET messages/_search
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "match": { "content": "huyen" }
+      },
+      "functions": [
+        {
+          "exp": {
+            "createdAt": {
+              "origin": "now",
+              "scale": "5d",
+              "decay": 0.5
+            }
+          }
+        }
+      ],
+      "boost_mode": "multiply"
+    }
+  }
+}
+
+
+// =============================================================
+// 16. VIETNAMESE CHAT SEARCH - FINAL CONFIG
+// =============================================================
+
+DELETE message_index
+
+PUT message_index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "vn_fold": {
+          "type": "asciifolding",
+          "preserve_original": true
+        },
+        "ngram_filter": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20
+        }
+      },
+      "analyzer": {
+        "vn_chat_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "vn_fold", "ngram_filter"]
+        },
+        "vn_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "vn_fold"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "content": {
+        "type": "text",
+        "analyzer": "vn_chat_analyzer",
+        "search_analyzer": "vn_search_analyzer"
+      },
+      "roomId": { "type": "keyword" },
+      "createdAt": {
+        "type": "date",
+        "format": "yyyy-MM-dd'T'HH:mm:ss.SSS||yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd||epoch_millis"
+      }
+    }
+  }
+}
+
+// Test data
+POST message_index/_bulk
+{ "index": { "_id": "1" } }
+{ "roomId": "room_1", "content": "Huyền ơi, nay có đi làm không?", "createdAt": "2026-01-01T08:00:00.000" }
+{ "index": { "_id": "2" } }
+{ "roomId": "room_1", "content": "Huyen check tin nhắn gấp nha", "createdAt": "2026-01-01T09:00:00.000" }
+{ "index": { "_id": "3" } }
+{ "roomId": "room_1", "content": "Chào bạn Huyền xinh đẹp", "createdAt": "2026-01-01T10:00:00.000" }
+{ "index": { "_id": "4" } }
+{ "roomId": "room_1", "content": "ìm contact của Huyen gap", "createdAt": "2026-01-01T11:00:00.000" }
+{ "index": { "_id": "5" } }
+{ "roomId": "room_1", "content": "Alo Huyền, nghe máy đi", "createdAt": "2026-01-01T12:00:00.000" }
+{ "index": { "_id": "6" } }
+{ "roomId": "room_1", "content": "Huyển đi họp chưa", "createdAt": "2026-01-01T13:00:00.000" }
+{ "index": { "_id": "7" } }
+{ "roomId": "room_1", "content": "Huyềnn nộp báo cáo chưa", "createdAt": "2026-01-01T14:00:00.000" }
+{ "index": { "_id": "8" } }
+{ "roomId": "room_1", "content": "Huyeefn ơi (lỗi gõ Telex)", "createdAt": "2026-01-01T15:00:00.000" }
+{ "index": { "_id": "9" } }
+{ "roomId": "room_1", "content": "Huỳen xem giúp tớ cái bug này", "createdAt": "2026-01-01T16:00:00.000" }
+{ "index": { "_id": "10" } }
+{ "roomId": "room_1", "content": "Hyền đâu rồi nhỉ (thiếu chữ u)", "createdAt": "2026-01-01T17:00:00.000" }
+{ "index": { "_id": "11" } }
+{ "roomId": "room_1", "content": "Huyềb (gõ nhầm n thành b)", "createdAt": "2026-01-01T18:00:00.000" }
+{ "index": { "_id": "12" } }
+{ "roomId": "room_1", "content": "H.u.y.ề.n ơi H u y ề n (có dấu cách)", "createdAt": "2026-01-01T19:00:00.000" }
+{ "index": { "_id": "13" } }
+{ "roomId": "room_1", "content": "@Huyền@ fix bug gấp", "createdAt": "2026-01-01T20:00:00.000" }
+{ "index": { "_id": "14" } }
+{ "roomId": "room_1", "content": "#Huyen team lead", "createdAt": "2026-01-01T21:00:00.000" }
+{ "index": { "_id": "15" } }
+{ "roomId": "room_1", "content": "ạn tên H uyen đúng không", "createdAt": "2026-01-01T22:00:00.000" }
+{ "index": { "_id": "16" } }
+{ "roomId": "room_1", "content": "ạn tên Huyennnnn đúng không", "createdAt": "2026-01-01T22:02:00.000" }
+
+
+// Final search query
+GET message_index/_search
+{
+  "size": 20,
+  "sort": [
+    { "createdAt": { "order": "desc" } }
+  ],
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "content": {
+              "query": "Huyen"
+            }
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "roomId": "room_1" } },
+        {
+          "range": {
+            "createdAt": {
+              "gte": "2026-01-01T08:00:00",
+              "lte": "2026-01-01T23:59:00"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "highlight": {
+    "pre_tags": ["<span style='background-color:yellow'>"],
+    "post_tags": ["</span>"],
+    "fields": {
+      "content": {}
+    }
+  }
+}
