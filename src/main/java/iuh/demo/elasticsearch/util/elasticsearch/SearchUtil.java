@@ -1,121 +1,126 @@
 package iuh.demo.elasticsearch.util.elasticsearch;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.json.JsonData;
 import iuh.demo.elasticsearch.dto.request.SearchRequest;
+import iuh.demo.elasticsearch.dto.request.SearchRequest.RangeFilter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
 public final class SearchUtil {
 
     private static final String DEFAULT_SORT_FIELD = "createdAt";
-    private static final DateTimeFormatter ES_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     public static NativeQuery buildNativeQuery(SearchRequest request) {
-        Query textQuery = buildTextQuery(request);
-        Query rangeQuery = buildRangeQuery(request);
+        if (request == null) return null;
 
-        if (textQuery == null && rangeQuery == null) {
-            return null;
-        }
-
-        Query finalQuery = combineQueries(textQuery, rangeQuery);
+        Query query = buildQuery(request);
 
         Pageable pageable = PageRequest.of(
                 Math.max(request.getPage(), 0),
                 Math.max(request.getSize(), 10),
-                buildSort(request)
+                Sort.by(Sort.Direction.DESC, DEFAULT_SORT_FIELD)
+        );
+
+        List<String> searchFields = request.getSearchFields();
+        List<HighlightField> highlightFields = (CollectionUtils.isEmpty(searchFields)
+                ? List.of("content")
+                : searchFields)
+                .stream()
+                .map(HighlightField::new)
+                .toList();
+
+        HighlightParameters params = HighlightParameters.builder()
+                .withPreTags("<span style='background-color:yellow'>")
+                .withPostTags("</span>")
+                .build();
+
+        HighlightQuery highlightQuery = new HighlightQuery(
+                new Highlight(params, highlightFields),
+                null
         );
 
         return NativeQuery.builder()
-                .withQuery(finalQuery)
+                .withQuery(query)
                 .withPageable(pageable)
+                .withHighlightQuery(highlightQuery)
                 .build();
     }
 
-    private static Query buildTextQuery(SearchRequest request) {
-        if (request == null || !StringUtils.hasText(request.getSearchTerm())) {
-            return null;
+    private static Query buildQuery(SearchRequest request) {
+        Query textQuery = buildTextQuery(
+                request.getSearchTerm(),
+                request.getSearchFields()
+        );
+
+        List<Query> filters = new ArrayList<>();
+        filters.addAll(buildTermFilters(request.getTermFilters()));
+        filters.addAll(buildRangeFilters(request.getRangeFilters()));
+
+        return Query.of(q -> q.bool(b -> {
+            b.must(textQuery);
+            if (!filters.isEmpty()) {
+                b.filter(filters);
+            }
+            return b;
+        }));
+    }
+
+    private static Query buildTextQuery(String searchTerm, List<String> fields) {
+        if (!StringUtils.hasText(searchTerm)) {
+            return Query.of(q -> q.matchAll(m -> m));
         }
 
-        List<String> fields = request.getFields();
-        if (CollectionUtils.isEmpty(fields)) {
-            return null;
-        }
+        String field = CollectionUtils.isEmpty(fields) ? "content" : fields.get(0);
 
-        if (fields.size() == 1) {
-            return Query.of(q -> q.match(m -> m
-                    .field(fields.get(0))
-                    .query(request.getSearchTerm())
-                    .operator(Operator.And)
-            ));
-        }
-
-        return Query.of(q -> q.multiMatch(m -> m
-                .query(request.getSearchTerm())
-                .fields(fields)
-                .type(TextQueryType.CrossFields)
-                .operator(Operator.And)
+        return Query.of(q -> q.match(m -> m
+                .field(field)
+                .query(searchTerm)
         ));
     }
 
-    private static Query buildRangeQuery(SearchRequest request) {
-        LocalDate from = request.getFromDate();
-        LocalDate to = request.getToDate();
+    private static List<Query> buildTermFilters(Map<String, String> termFilters) {
+        List<Query> queries = new ArrayList<>();
+        if (termFilters == null) return queries;
 
-        if (from == null && to == null) {
-            return null;
-        }
-
-        return Query.of(q -> q.range(r -> r
-                .date(d -> {
-                    d.field("createdAt");
-
-                    if (from != null) {
-                        LocalDateTime fromDateTime = from.atStartOfDay();
-                        d.gte(fromDateTime.format(ES_DATE_FORMATTER));
-                    }
-                    if (to != null) {
-                        LocalDateTime toDateTime = to.atTime(23, 59, 59, 999000000);
-                        d.lte(toDateTime.format(ES_DATE_FORMATTER));
-                    }
-                    return d;
-                })
-        ));
+        termFilters.forEach((field, value) -> {
+            if (StringUtils.hasText(value)) {
+                queries.add(Query.of(q -> q.term(t -> t.field(field).value(value))));
+            }
+        });
+        return queries;
     }
 
-    private static Query combineQueries(Query textQuery, Query rangeQuery) {
-        if (textQuery != null && rangeQuery != null) {
-            return Query.of(q -> q.bool(b -> b
-                    .must(textQuery)
-                    .filter(rangeQuery)
-            ));
-        }
-        return textQuery != null ? textQuery : rangeQuery;
-    }
+    private static List<Query> buildRangeFilters(Map<String, RangeFilter> rangeFilters) {
+        List<Query> queries = new ArrayList<>();
+        if (rangeFilters == null) return queries;
 
-    private static Sort buildSort(SearchRequest request) {
-        String sortBy = StringUtils.hasText(request.getSortBy())
-                ? request.getSortBy()
-                : DEFAULT_SORT_FIELD;
+        rangeFilters.forEach((field, range) -> {
+            if (range == null) return;
+            if (!StringUtils.hasText(range.getFrom()) && !StringUtils.hasText(range.getTo())) return;
 
-        Sort.Direction direction = "ASC".equalsIgnoreCase(request.getSortOrder())
-                ? Sort.Direction.ASC
-                : Sort.Direction.DESC;
+            queries.add(Query.of(q -> q.range(r -> r.untyped(u -> {
+                u.field(field);
+                if (StringUtils.hasText(range.getFrom())) u.gte(JsonData.of(range.getFrom()));
+                if (StringUtils.hasText(range.getTo())) u.lte(JsonData.of(range.getTo()));
+                return u;
+            }))));
+        });
 
-        return Sort.by(direction, sortBy);
+        return queries;
     }
 }

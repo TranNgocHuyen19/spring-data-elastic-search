@@ -2,6 +2,7 @@ package iuh.demo.elasticsearch.service.chat;
 
 import iuh.demo.elasticsearch.dto.request.SearchRequest;
 import iuh.demo.elasticsearch.dto.request.SendMessageRequest;
+import iuh.demo.elasticsearch.dto.response.MessageSearchResult;
 import iuh.demo.elasticsearch.model.common.UserInfo;
 import iuh.demo.elasticsearch.model.elasticsearch.MessageDoc;
 import iuh.demo.elasticsearch.model.mongodb.Message;
@@ -13,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.stereotype.Service;
 
@@ -60,13 +60,19 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Page<MessageDoc> searchMessage(SearchRequest request) {
+    public Page<MessageSearchResult> searchMessage(SearchRequest request) {
         NativeQuery query = SearchUtil.buildNativeQuery(request);
         if (query == null) return Page.empty();
 
         SearchHits<MessageDoc> hits = elasticOperations.search(query, MessageDoc.class);
-        List<MessageDoc> list = hits.stream().map(SearchHit::getContent).toList();
+        
+        List<MessageSearchResult> results = hits.stream()
+                .map(hit -> MessageSearchResult.builder()
+                        .message(hit.getContent())
+                        .highlights(hit.getHighlightFields())
+                        .build())
+                .toList();
 
-        return new PageImpl<>(list, query.getPageable(), hits.getTotalHits());
+        return new PageImpl<>(results, query.getPageable(), hits.getTotalHits());
     }
 }

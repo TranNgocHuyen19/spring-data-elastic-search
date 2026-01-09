@@ -1,5 +1,27 @@
 {
-  "index": {
-
+  "analysis": {
+    "filter": {
+      "vn_fold": {
+        "type": "asciifolding",
+        "preserve_original": true
+      },
+      "ngram_filter": {
+        "type": "edge_ngram",
+        "min_gram": 2,
+        "max_gram": 20
+      }
+    },
+    "analyzer": {
+      "vn_chat_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "vn_fold", "ngram_filter"]
+      },
+      "vn_search_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "vn_fold"]
+      }
+    }
   }
 }

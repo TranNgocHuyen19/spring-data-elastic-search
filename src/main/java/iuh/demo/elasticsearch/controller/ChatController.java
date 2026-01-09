@@ -2,7 +2,7 @@ package iuh.demo.elasticsearch.controller;
 
 import iuh.demo.elasticsearch.dto.request.SearchRequest;
 import iuh.demo.elasticsearch.dto.request.SendMessageRequest;
-import iuh.demo.elasticsearch.model.elasticsearch.MessageDoc;
+import iuh.demo.elasticsearch.dto.response.MessageSearchResult;
 import iuh.demo.elasticsearch.model.mongodb.Message;
 import iuh.demo.elasticsearch.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class ChatController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<Page<MessageDoc>> searchMessages(@RequestBody SearchRequest request) {
+    public ResponseEntity<Page<MessageSearchResult>> searchMessages(@RequestBody SearchRequest request) {
         return ResponseEntity.ok(chatService.searchMessage(request));
     }
 }

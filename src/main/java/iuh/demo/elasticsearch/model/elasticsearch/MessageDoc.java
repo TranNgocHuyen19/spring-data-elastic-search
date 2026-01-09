@@ -8,23 +8,19 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import iuh.demo.elasticsearch.model.common.UserInfo;
 import iuh.demo.elasticsearch.util.elasticsearch.Indices;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.*;
 
 import java.time.LocalDateTime;
 
-@org.springframework.data.mongodb.core.mapping.Document(collection = "messages")
 @Document(indexName = Indices.MESSAGE_INDEX)
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Setting(settingPath = "static/elasticsearch/es-settings.json")
-@Builder
 public class MessageDoc {
 
     @Id
@@ -36,7 +32,11 @@ public class MessageDoc {
     @Field(type = FieldType.Object)
     private UserInfo sender;
 
-    @Field(type = FieldType.Text)
+    @Field(
+            type = FieldType.Text,
+            analyzer = "vn_chat_analyzer",
+            searchAnalyzer = "vn_search_analyzer"
+    )
     private String content;
 
     @Field(
